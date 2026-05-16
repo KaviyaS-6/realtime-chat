@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 from datetime import datetime
 from bson import ObjectId
-
+from src.db.mongo import messages_collection
 
 client = MongoClient(
     "mongodb://localhost:27017"
