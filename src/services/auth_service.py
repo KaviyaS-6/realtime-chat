@@ -1,8 +1,10 @@
 from jose import jwt
 from datetime import datetime, timedelta
-
-SECRET_KEY = "MYSECRETKEY"
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
+SECRET_KEY = os.getenv("JWT_SECRET")
+print("JWT SECRET:", SECRET_KEY)
 ALGORITHM = "HS256"
 
 def create_token(username):

@@ -1,10 +1,11 @@
 import redis
 import threading
+import os
 
 r = redis.Redis(
-    host="prompt-wahoo-125619.upstash.io",
-    port=6379,
-    password="gQAAAAAAAeqzAAIgcDJhY2MzZTFiMDMzMzI0NDk3OTY1OWRmOWRiMDM3ZjU0Zg",
+    host=os.getenv("REDIS_HOST"),
+    port=int(os.getenv("REDIS_PORT")),
+    password=os.getenv("REDIS_PASSWORD"),
     ssl=True,
     decode_responses=True
 )
