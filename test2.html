@@ -107,19 +107,11 @@
 
 const username = "user2";
 
-/*
-GET TOKEN:
-
-POST http://127.0.0.1:8000/login
-
-BODY:
-"user1"
-*/
-
 const token =
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMiIsImV4cCI6MTc3OTEyMjMwMX0.7SUkugw_TbFIXVZTXlF_sVdIqkzkufwJcj92aJpFGbE";
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMiIsImV4cCI6MTc3OTEyMzUwM30.oiIgpUK71U6g35pnMZKMTljiQzgjIY96AZaHjMhldHk";
+
 const ws = new WebSocket(
-    `ws://127.0.0.1:8000/ws/python-room?token=${token}`
+    `wss://realtime-chat-nc07.onrender.com/ws/python-room?token=${token}`
 );
 
 const chatBox =
@@ -137,6 +129,25 @@ ws.onopen = () => {
     console.log("CONNECTED");
 
     addSystemMessage("Connected");
+
+    window.wsReady = true;
+};
+
+// ---------------- ERROR ----------------
+ws.onerror = (error) => {
+
+    console.log("WEBSOCKET ERROR:", error);
+
+    addSystemMessage("WebSocket Error");
+};
+
+
+// ---------------- CLOSE ----------------
+ws.onclose = () => {
+
+    console.log("DISCONNECTED");
+
+    addSystemMessage("Disconnected");
 };
 
 
@@ -147,8 +158,16 @@ ws.onmessage = (event) => {
 
     const data = JSON.parse(event.data);
 
+    // ---------- ONLINE USERS ----------
+    if (data.type === "online_users") {
+
+        addSystemMessage(
+            "Online Users: " + data.users.join(", ")
+        );
+    }
+
     // ---------- MESSAGE ----------
-    if (data.type === "message") {
+    else if (data.type === "message") {
 
         addMessage(
             data.message_id,
@@ -158,6 +177,7 @@ ws.onmessage = (event) => {
             data.timestamp
         );
 
+        // auto seen
         if (data.user !== username) {
 
             ws.send(JSON.stringify({
@@ -166,6 +186,7 @@ ws.onmessage = (event) => {
             }));
         }
     }
+
     // ---------- TYPING ----------
     else if (
         data.type === "typing" &&
@@ -191,7 +212,6 @@ ws.onmessage = (event) => {
     }
 
     // ---------- SEEN ----------
-    
     else if (data.type === "seen") {
 
         const msg =
@@ -217,6 +237,7 @@ ws.onmessage = (event) => {
 
         msg.appendChild(seenDiv);
     }
+
     // ---------- ERROR ----------
     else if (data.type === "error") {
 
@@ -229,6 +250,13 @@ ws.onmessage = (event) => {
 
 // ---------------- SEND MESSAGE ----------------
 function sendMessage() {
+
+    if (!window.wsReady) {
+
+        alert("WebSocket not connected yet");
+
+        return;
+    }
 
     const input =
         document.getElementById("msg");
@@ -257,6 +285,18 @@ function sendMessage() {
 }
 
 
+// ---------------- ENTER KEY ----------------
+document
+    .getElementById("msg")
+    .addEventListener("keypress", (e) => {
+
+        if (e.key === "Enter") {
+
+            sendMessage();
+        }
+    });
+
+
 // ---------------- TYPING ----------------
 document
     .getElementById("msg")
@@ -265,10 +305,12 @@ document
         if (typingTimeout) {
             return;
         }
+        if (window.wsReady) {
 
-        ws.send(JSON.stringify({
-            type: "typing"
-        }));
+            ws.send(JSON.stringify({
+                type: "typing"
+            }));
+        }
 
         typingTimeout = setTimeout(() => {
 
@@ -287,6 +329,11 @@ function addMessage(
     timestamp=""
 ) {
 
+    // prevent duplicate messages
+    if (document.getElementById(messageId)) {
+        return;
+    }
+
     const div =
         document.createElement("div");
 
@@ -296,8 +343,9 @@ function addMessage(
         : "message";
 
     const time =
-        new Date(timestamp)
-        .toLocaleTimeString();
+        timestamp
+        ? new Date(timestamp).toLocaleTimeString()
+        : "";
 
     div.id = messageId;
 
@@ -324,26 +372,6 @@ function addMessage(
     chatBox.appendChild(div);
 
     scrollBottom();
-}
-
-
-// ---------------- UPDATE SEEN ----------------
-function updateSeenStatus(
-    messageId,
-    seenBy
-) {
-
-    const seenDiv =
-        document.getElementById(
-            "seen-" + messageId
-        );
-
-    if (!seenDiv) {
-        return;
-    }
-
-    seenDiv.innerText =
-        "Seen by " + seenBy;
 }
 
 

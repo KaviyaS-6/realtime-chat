@@ -1,15 +1,7 @@
-from pymongo import MongoClient
 from datetime import datetime
 from bson import ObjectId
+
 from src.db.mongo import messages_collection
-
-client = MongoClient(
-    "mongodb://localhost:27017"
-)
-
-db = client["chat_db"]
-
-messages_collection = db["messages"]
 
 
 # ---------------- SAVE MESSAGE ----------------

@@ -133,10 +133,15 @@ async def websocket_endpoint(
         "users": online_users
     }
 
-    await websocket.send_text(
-        json.dumps(online_users_data)
-    )
+    try:
 
+        await websocket.send_text(
+            json.dumps(online_users_data)
+        )
+
+    except Exception as e:
+
+        print("SEND ERROR:", e)
     # ---------------- ONLINE EVENT ----------------
     online_event = {
         "type": "presence",
