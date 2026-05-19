@@ -10,6 +10,7 @@
         body {
             font-family: Arial;
             margin: 40px;
+            background: #f5f5f5;
         }
 
         #chat-box {
@@ -17,7 +18,7 @@
             width: 500px;
             height: 500px;
 
-            border: 1px solid black;
+            border: 1px solid #ccc;
 
             overflow-y: auto;
 
@@ -25,7 +26,7 @@
 
             margin-bottom: 10px;
 
-            background: #fafafa;
+            background: white;
         }
 
         .message {
@@ -79,6 +80,7 @@
             padding: 8px 14px;
 
             margin-left: 5px;
+            cursor: pointer;
         }
 
     </style>
@@ -105,11 +107,18 @@
 
 <script>
 
+// ---------------- USER ----------------
 const username = "user1";
 
-const token =
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsImV4cCI6MTc3OTEyMzQ1MH0.E4--c4qqXW7U3q6IPO1bSNVkui6iIhoXz4wKpn-z7sc";
 
+// ---------------- TOKEN ----------------
+// GET FROM:
+// POST https://realtime-chat-nc07.onrender.com/login
+
+const token ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsImV4cCI6MTc3OTI5OTc5OH0.f1Tu75S00AZrXO6YwHhPQrCmfw4vJXqjIlMMSMLZPD0";
+
+
+// ---------------- WEBSOCKET ----------------
 const ws = new WebSocket(
     `wss://realtime-chat-nc07.onrender.com/ws/python-room?token=${token}`
 );
@@ -122,16 +131,19 @@ const typingDiv =
 
 let typingTimeout = null;
 
+let wsReady = false;
+
 
 // ---------------- CONNECT ----------------
 ws.onopen = () => {
 
     console.log("CONNECTED");
 
-    addSystemMessage("Connected");
+    wsReady = true;
 
-    window.wsReady = true;
+    addSystemMessage("Connected to server");
 };
+
 
 // ---------------- ERROR ----------------
 ws.onerror = (error) => {
@@ -147,7 +159,9 @@ ws.onclose = () => {
 
     console.log("DISCONNECTED");
 
-    addSystemMessage("Disconnected");
+    wsReady = false;
+
+    addSystemMessage("Disconnected from server");
 };
 
 
@@ -158,13 +172,16 @@ ws.onmessage = (event) => {
 
     const data = JSON.parse(event.data);
 
+
     // ---------- ONLINE USERS ----------
     if (data.type === "online_users") {
 
         addSystemMessage(
-            "Online Users: " + data.users.join(", ")
+            "Online Users: " +
+            data.users.join(", ")
         );
     }
+
 
     // ---------- MESSAGE ----------
     else if (data.type === "message") {
@@ -187,6 +204,7 @@ ws.onmessage = (event) => {
         }
     }
 
+
     // ---------- TYPING ----------
     else if (
         data.type === "typing" &&
@@ -203,6 +221,7 @@ ws.onmessage = (event) => {
         }, 1000);
     }
 
+
     // ---------- PRESENCE ----------
     else if (data.type === "presence") {
 
@@ -210,6 +229,7 @@ ws.onmessage = (event) => {
             data.user + " is " + data.status
         );
     }
+
 
     // ---------- SEEN ----------
     else if (data.type === "seen") {
@@ -238,6 +258,7 @@ ws.onmessage = (event) => {
         msg.appendChild(seenDiv);
     }
 
+
     // ---------- ERROR ----------
     else if (data.type === "error") {
 
@@ -251,9 +272,9 @@ ws.onmessage = (event) => {
 // ---------------- SEND MESSAGE ----------------
 function sendMessage() {
 
-    if (!window.wsReady) {
+    if (!wsReady) {
 
-        alert("WebSocket not connected yet");
+        alert("WebSocket not connected");
 
         return;
     }
@@ -305,7 +326,8 @@ document
         if (typingTimeout) {
             return;
         }
-        if (window.wsReady) {
+
+        if (wsReady) {
 
             ws.send(JSON.stringify({
                 type: "typing"
@@ -329,7 +351,7 @@ function addMessage(
     timestamp=""
 ) {
 
-    // prevent duplicate messages
+    // prevent duplicates
     if (document.getElementById(messageId)) {
         return;
     }
@@ -344,7 +366,8 @@ function addMessage(
 
     const time =
         timestamp
-        ? new Date(timestamp).toLocaleTimeString()
+        ? new Date(timestamp)
+            .toLocaleTimeString()
         : "";
 
     div.id = messageId;
